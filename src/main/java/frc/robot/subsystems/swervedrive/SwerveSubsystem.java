@@ -24,6 +24,8 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.numbers.N1;
+import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.trajectory.Trajectory;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -55,6 +57,7 @@ import swervelib.parser.SwerveParser;
 import swervelib.telemetry.SwerveDriveTelemetry;
 import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
 import dev.doglog.*;
+import edu.wpi.first.math.Matrix;
 
 public class SwerveSubsystem extends SubsystemBase
 {
@@ -70,8 +73,8 @@ public class SwerveSubsystem extends SubsystemBase
   /**
    * PhotonVision class to keep an accurate odometry.
    */
-  private       Vision      vision;
-
+  private       Vision4920      CenterCamera;
+  public Pose3d CenterCameraPose3d = new Pose3d();
   /**
    * Initialize {@link SwerveDrive} with the directory provided.
    *
@@ -135,9 +138,40 @@ public class SwerveSubsystem extends SubsystemBase
    */
   public void setupPhotonVision()
   {
-    vision = new Vision(swerveDrive::getPose, swerveDrive.field);
+    //vision = new Vision(swerveDrive::getPose, swerveDrive.field);
+    CenterCamera = new Vision4920(Constants.Vision4920.kCenterCam, Constants.Vision4920.kRobotToCenterCam );
   }
-
+  private void ProcessVision4920()
+  {
+    //Process Vision
+    Pose2d CenterCamPose= new Pose2d(0.0 ,0.0, Rotation2d.fromDegrees(0.0));;
+    double CenterCamVisionTimestamp;
+  
+    if ( DriverStation.isDSAttached() && CenterCamera != null)
+    {
+       var visionEst = CenterCamera.getEstimatedGlobalPose();
+       DogLog.log("SwerveSS/Vision/CenterCameraPresent", CenterCamera.isConnected());
+       
+        if (visionEst.isPresent()){
+            CenterCamPose = visionEst.get().estimatedPose.toPose2d();
+            CenterCameraPose3d = visionEst.get().estimatedPose;
+  
+            
+            CenterCamVisionTimestamp = visionEst.get().timestampSeconds;
+            DogLog.log("SwerveSS/Vision/CeneterCameraPose", CenterCameraPose3d);
+            DogLog.log("SwerveSS/Vision/CeneterTimeStamp",CenterCamVisionTimestamp);
+            if (!DriverStation.isAutonomous())
+            VisionReading(CenterCamPose, CenterCamVisionTimestamp, CenterCamera.confidenceCalculator(visionEst.get()));
+        }
+    
+    }
+  
+  
+  }
+  public void VisionReading(Pose2d visionPose,double Timestamp, Matrix<N3, N1> visionMeasurementStdDevs)
+  {
+      swerveDrive.addVisionMeasurement(visionPose, Timestamp, visionMeasurementStdDevs);
+  }  
   @Override
   public void periodic()
   {
@@ -145,10 +179,11 @@ public class SwerveSubsystem extends SubsystemBase
     if (visionDriveTest)
     {
       swerveDrive.updateOdometry();
+      ProcessVision4920();
 
      // SmartDashboard.("Pose",swerveDrive.getPose());
-     vision.updatePoseEstimation(swerveDrive);
-     var visionEst = vision.getEstimatedGlobalPose(Cameras.CENTER_CAM);
+    /* vision.updatePoseEstimation(swerveDrive);
+     var visionEst = vision.getEstimatedGlobalPose();
      Pose3d CenterCameraPose3d = new Pose3d();
      DogLog.log("SwerveSS/Vision/CenterCameraPresent", visionEst.isPresent());
      
@@ -162,7 +197,8 @@ public class SwerveSubsystem extends SubsystemBase
 
 
       //      DogLog.log("CameraPose", vision.getEstimatedGlobalPose(Vision.Cameras.CENTER_CAM));
-    }
+    */
+      }
   }
 
   @Override

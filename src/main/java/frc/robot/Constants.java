@@ -70,8 +70,8 @@ public final class Constants
 
     // positive x to the left, positive y up
     public static final Transform3d kRobotToCenterCam =
-            new Transform3d(new Translation3d(Units.inchesToMeters(-3.25), Units.inchesToMeters(-10.75), Units.inchesToMeters(38.25)), 
-            new Rotation3d(0, Units.degreesToRadians(309), Units.degreesToRadians(180))); //
+            new Transform3d(new Translation3d(Units.inchesToMeters(14), Units.inchesToMeters(-1.375), Units.inchesToMeters(11.8125)), 
+            new Rotation3d(0, Units.degreesToRadians(356), Units.degreesToRadians(0))); //
 
     public static final Transform3d kRobotToGreyFeederCam =
             new Transform3d(new Translation3d(Units.inchesToMeters(-3.25), Units.inchesToMeters(-10.75), Units.inchesToMeters(38.25)), 

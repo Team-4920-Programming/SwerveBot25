@@ -146,7 +146,10 @@ public class SwerveSubsystem extends SubsystemBase
     //Process Vision
     Pose2d CenterCamPose= new Pose2d(0.0 ,0.0, Rotation2d.fromDegrees(0.0));;
     double CenterCamVisionTimestamp;
-  
+    //System.out.println("driver statio"+DriverStation.isDSAttached());
+    //System.out.println("CeneterCAm"+(CenterCamera != null));
+
+
     if ( DriverStation.isDSAttached() && CenterCamera != null)
     {
        var visionEst = CenterCamera.getEstimatedGlobalPose();

@@ -339,7 +339,7 @@ public class Vision
      * Center Camera
      */
     CENTER_CAM("CenterCam",
-               new Rotation3d(0, Units.degreesToRadians(3), 0),
+               new Rotation3d(0, Units.degreesToRadians(49), 0),
                new Translation3d(Units.inchesToMeters(14),
                                  Units.inchesToMeters(-2.375),
                                  Units.inchesToMeters(13.8125)),

@@ -18,12 +18,14 @@ import com.pathplanner.lib.util.DriveFeedforwards;
 import com.pathplanner.lib.util.swerve.SwerveSetpoint;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.trajectory.Trajectory;
@@ -58,6 +60,7 @@ import swervelib.telemetry.SwerveDriveTelemetry;
 import swervelib.telemetry.SwerveDriveTelemetry.TelemetryVerbosity;
 import dev.doglog.*;
 import edu.wpi.first.math.Matrix;
+import edu.wpi.first.math.VecBuilder;
 
 public class SwerveSubsystem extends SubsystemBase
 {
@@ -75,6 +78,7 @@ public class SwerveSubsystem extends SubsystemBase
    */
   private       Vision4920      CenterCamera;
   public Pose3d CenterCameraPose3d = new Pose3d();
+  private final SwerveDrivePoseEstimator poseEstimator;
   /**
    * Initialize {@link SwerveDrive} with the directory provided.
    *
@@ -91,6 +95,17 @@ public class SwerveSubsystem extends SubsystemBase
                                                     Rotation2d.fromDegrees(180));
     // Configure the Telemetry before creating the SwerveDrive to avoid unnecessary objects being created.
     SwerveDriveTelemetry.verbosity = TelemetryVerbosity.HIGH;
+    var stateStdDevs = VecBuilder.fill(0.1, 0.1, 0.1);
+    var visionStdDevs = VecBuilder.fill(1.0, 0.25, 0.2);
+
+    poseEstimator =
+    new SwerveDrivePoseEstimator(
+            Constants.DriveConstants.kDriveKinematics,
+            GetGyroAngle(),
+            getModulePositions(),
+            new Pose2d(),
+            stateStdDevs,
+            visionStdDevs);
     try
     {
       swerveDrive = new SwerveParser(directory).createSwerveDrive(Constants.MAX_SPEED, startingPose);
@@ -131,6 +146,16 @@ public class SwerveSubsystem extends SubsystemBase
                                   Constants.MAX_SPEED,
                                   new Pose2d(new Translation2d(Meter.of(2), Meter.of(0)),
                                              Rotation2d.fromDegrees(0)));
+    var stateStdDevs = VecBuilder.fill(0.1, 0.1, 0.1);
+    var visionStdDevs = VecBuilder.fill(1.0, 0.25, 0.2);
+    poseEstimator =
+    new SwerveDrivePoseEstimator(
+            Constants.DriveConstants.kDriveKinematics,
+            GetGyroAngle(),
+            getModulePositions(),
+            new Pose2d(),
+            stateStdDevs,
+            visionStdDevs);
   }
 
   /**
@@ -174,6 +199,7 @@ public class SwerveSubsystem extends SubsystemBase
   public void VisionReading(Pose2d visionPose,double Timestamp, Matrix<N3, N1> visionMeasurementStdDevs)
   {
       swerveDrive.addVisionMeasurement(visionPose, Timestamp, visionMeasurementStdDevs);
+      poseEstimator.addVisionMeasurement(visionPose, Timestamp, visionMeasurementStdDevs);
   }  
   @Override
   public void periodic()
@@ -182,8 +208,10 @@ public class SwerveSubsystem extends SubsystemBase
     if (visionDriveTest)
     {
       swerveDrive.updateOdometry();
+      poseEstimator.update(GetGyroAngle(), getModulePositions());
+      
       ProcessVision4920();
-
+      DogLog.log("SwerveSS/Pose/Pose4920", poseEstimator.getEstimatedPosition());
      // SmartDashboard.("Pose",swerveDrive.getPose());
     /* vision.updatePoseEstimation(swerveDrive);
      var visionEst = vision.getEstimatedGlobalPose();
@@ -582,6 +610,7 @@ public class SwerveSubsystem extends SubsystemBase
   public void resetOdometry(Pose2d initialHolonomicPose)
   {
     swerveDrive.resetOdometry(initialHolonomicPose);
+    poseEstimator.resetPose(initialHolonomicPose);
   }
 
   /**
@@ -788,4 +817,17 @@ public class SwerveSubsystem extends SubsystemBase
   {
     return swerveDrive;
   }
+  public void resetPose(Pose2d pose) {
+ 
+    poseEstimator.resetPosition(GetGyroAngle(), getModulePositions(), pose);
+  }
+  Rotation2d GetGyroAngle()
+{
+  return Rotation2d.fromDegrees(swerveDrive.getYaw().getDegrees());
+
+}
+public SwerveModulePosition[] getModulePositions()
+{
+  return swerveDrive.getModulePositions();
+}
 }

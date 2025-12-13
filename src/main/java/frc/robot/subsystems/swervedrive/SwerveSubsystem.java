@@ -15,6 +15,7 @@ import com.pathplanner.lib.controllers.PPHolonomicDriveController;
 import com.pathplanner.lib.path.PathConstraints;
 import com.pathplanner.lib.path.PathPlannerPath;
 import com.pathplanner.lib.util.DriveFeedforwards;
+import com.pathplanner.lib.util.PathPlannerLogging;
 import com.pathplanner.lib.util.swerve.SwerveSetpoint;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
@@ -39,6 +40,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Config;
 import frc.robot.Constants;
+import frc.robot.Constants.DriveConstants;
 import frc.robot.subsystems.swervedrive.Vision.Cameras;
 import java.io.File;
 import java.io.IOException;
@@ -72,7 +74,7 @@ public class SwerveSubsystem extends SubsystemBase
   /**
    * Enable vision odometry updates while driving.
    */
-  private final boolean     visionDriveTest = true;
+  private final boolean     visionDriveTest = false;
   /**
    * PhotonVision class to keep an accurate odometry.
    */
@@ -98,14 +100,7 @@ public class SwerveSubsystem extends SubsystemBase
     var stateStdDevs = VecBuilder.fill(0.1, 0.1, 0.1);
     var visionStdDevs = VecBuilder.fill(1.0, 0.25, 0.2);
 
-    poseEstimator =
-    new SwerveDrivePoseEstimator(
-            Constants.DriveConstants.kDriveKinematics,
-            GetGyroAngle(),
-            getModulePositions(),
-            new Pose2d(),
-            stateStdDevs,
-            visionStdDevs);
+
     try
     {
       swerveDrive = new SwerveParser(directory).createSwerveDrive(Constants.MAX_SPEED, startingPose);
@@ -115,6 +110,14 @@ public class SwerveSubsystem extends SubsystemBase
     {
       throw new RuntimeException(e);
     }
+    poseEstimator =
+    new SwerveDrivePoseEstimator(
+            Constants.DriveConstants.kDriveKinematics,
+            GetGyroAngle(),
+            getModulePositions(),
+            startingPose,
+            stateStdDevs,
+            visionStdDevs);
     swerveDrive.setHeadingCorrection(false); // Heading correction should only be used while controlling the robot via angle.
     swerveDrive.setCosineCompensator(false);//!SwerveDriveTelemetry.isSimulation); // Disables cosine compensation for simulations since it causes discrepancies not seen in real life.
     swerveDrive.setAngularVelocityCompensation(true,
@@ -204,14 +207,18 @@ public class SwerveSubsystem extends SubsystemBase
   @Override
   public void periodic()
   {
+    
     // When vision is enabled we must manually update odometry in SwerveDrive
     if (visionDriveTest)
     {
-      swerveDrive.updateOdometry();
-      poseEstimator.update(GetGyroAngle(), getModulePositions());
-      
       ProcessVision4920();
+      swerveDrive.updateOdometry();
+  
+      //postTrajectory(PathPlannerLogging.logActivePath(null););
+    }
+      poseEstimator.update(GetGyroAngle(), getModulePositions());
       DogLog.log("SwerveSS/Pose/Pose4920", poseEstimator.getEstimatedPosition());
+      //swerveDrive.field.setRobotPose(getPose());
      // SmartDashboard.("Pose",swerveDrive.getPose());
     /* vision.updatePoseEstimation(swerveDrive);
      var visionEst = vision.getEstimatedGlobalPose();
@@ -229,7 +236,7 @@ public class SwerveSubsystem extends SubsystemBase
 
       //      DogLog.log("CameraPose", vision.getEstimatedGlobalPose(Vision.Cameras.CENTER_CAM));
     */
-      }
+      
   }
 
   @Override
@@ -245,11 +252,13 @@ public class SwerveSubsystem extends SubsystemBase
     // Load the RobotConfig from the GUI settings. You should probably
     // store this in your Constants file
     RobotConfig config;
+    
+
     try
     {
       config = RobotConfig.fromGUISettings();
 
-      final boolean enableFeedforward = true;
+      final boolean enableFeedforward = false;
       // Configure AutoBuilder last
       AutoBuilder.configure(
           this::getPose,
@@ -276,7 +285,7 @@ public class SwerveSubsystem extends SubsystemBase
               // PPHolonomicController is the built in path following controller for holonomic drive trains
               new PIDConstants(5.0, 0.0, 0.0),
               // Translation PID constants
-              new PIDConstants(5.0, 0.0, 0.0)
+              new PIDConstants(5, 0.0, 0.0)
               // Rotation PID constants
           ),
           config,
@@ -620,7 +629,8 @@ public class SwerveSubsystem extends SubsystemBase
    */
   public Pose2d getPose()
   {
-    return swerveDrive.getPose();
+    //return swerveDrive.getPose();
+    return poseEstimator.getEstimatedPosition();
   }
 
   /**
@@ -750,6 +760,7 @@ public class SwerveSubsystem extends SubsystemBase
   public ChassisSpeeds getFieldVelocity()
   {
     return swerveDrive.getFieldVelocity();
+    
   }
 
   /**
@@ -759,7 +770,10 @@ public class SwerveSubsystem extends SubsystemBase
    */
   public ChassisSpeeds getRobotVelocity()
   {
-    return swerveDrive.getRobotVelocity();
+    //return swerveDrive.getRobotVelocity();
+    return DriveConstants.kDriveKinematics.toChassisSpeeds(swerveDrive.getStates());
+
+
   }
 
   /**
@@ -823,7 +837,10 @@ public class SwerveSubsystem extends SubsystemBase
   }
   Rotation2d GetGyroAngle()
 {
+  if (swerveDrive != null)
   return Rotation2d.fromDegrees(swerveDrive.getYaw().getDegrees());
+  else
+  return Rotation2d.fromDegrees(0);
 
 }
 public SwerveModulePosition[] getModulePositions()

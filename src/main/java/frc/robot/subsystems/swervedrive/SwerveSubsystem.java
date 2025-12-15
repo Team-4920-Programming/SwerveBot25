@@ -74,7 +74,7 @@ public class SwerveSubsystem extends SubsystemBase
   /**
    * Enable vision odometry updates while driving.
    */
-  private final boolean     visionDriveTest = false;
+  private final boolean     visionDriveTest = true;
   /**
    * PhotonVision class to keep an accurate odometry.
    */
@@ -191,7 +191,6 @@ public class SwerveSubsystem extends SubsystemBase
             CenterCamVisionTimestamp = visionEst.get().timestampSeconds;
             DogLog.log("SwerveSS/Vision/CeneterCameraPose", CenterCameraPose3d);
             DogLog.log("SwerveSS/Vision/CeneterTimeStamp",CenterCamVisionTimestamp);
-            if (!DriverStation.isAutonomous())
             VisionReading(CenterCamPose, CenterCamVisionTimestamp, CenterCamera.confidenceCalculator(visionEst.get()));
         }
     
@@ -202,8 +201,9 @@ public class SwerveSubsystem extends SubsystemBase
   public void VisionReading(Pose2d visionPose,double Timestamp, Matrix<N3, N1> visionMeasurementStdDevs)
   {
       swerveDrive.addVisionMeasurement(visionPose, Timestamp, visionMeasurementStdDevs);
-      poseEstimator.addVisionMeasurement(visionPose, Timestamp, visionMeasurementStdDevs);
-  }  
+  //    poseEstimator.addVisionMeasurement(visionPose, Timestamp, visionMeasurementStdDevs);
+  poseEstimator.addVisionMeasurement(visionPose, Timestamp);
+    }  
   @Override
   public void periodic()
   {

@@ -119,7 +119,10 @@ public static final class DriveConstants {
 
     // The standard deviations of our vision estimated poses, which affect correction rate
     // (Fake values. Experiment and determine estimation noise on an actual robot.)
-    public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(4, 4, 8);
+    //public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(4, 4, 8);
+    
+    public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(.75, .75, 1.2);
+    
     public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(.5, .5, 1);
 
 // from Hemlock5712

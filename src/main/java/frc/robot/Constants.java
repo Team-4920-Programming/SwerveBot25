@@ -78,13 +78,18 @@ public static final class DriveConstants {
     public static final String kBlueGeneralCam = "BlueGeneralCam";
     public static final String kBlueFrontCam = "BlueFrontCam";
     public static final String kCenterCam = "CenterCam";
+    public static final String kRightCam = "RightCam";
     // Cam mounted facing forward, half a meter forward of center, half a meter up from center.
 
 
     // positive x to the left, positive y up
     public static final Transform3d kRobotToCenterCam =
-            new Transform3d(new Translation3d(Units.inchesToMeters(14), Units.inchesToMeters(-1.375), Units.inchesToMeters(11.8125)), 
-            new Rotation3d(0, Units.degreesToRadians(356), Units.degreesToRadians(0))); //
+            new Transform3d(new Translation3d(Units.inchesToMeters(14), Units.inchesToMeters(-1.375), Units.inchesToMeters(19)), 
+            new Rotation3d(Units.degreesToRadians(359), Units.degreesToRadians(8), Units.degreesToRadians(2))); //
+
+    public static final Transform3d kRobotToRightCam =
+            new Transform3d(new Translation3d(Units.inchesToMeters(15), Units.inchesToMeters(-9.5), Units.inchesToMeters(19)), 
+            new Rotation3d(Units.degreesToRadians(1), Units.degreesToRadians(7), Units.degreesToRadians(4))); //
 
     public static final Transform3d kRobotToGreyFeederCam =
             new Transform3d(new Translation3d(Units.inchesToMeters(-3.25), Units.inchesToMeters(-10.75), Units.inchesToMeters(38.25)), 
@@ -120,7 +125,7 @@ public static final class DriveConstants {
     // The standard deviations of our vision estimated poses, which affect correction rate
     // (Fake values. Experiment and determine estimation noise on an actual robot.)
     //public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(4, 4, 8);
-    
+
     public static final Matrix<N3, N1> kSingleTagStdDevs = VecBuilder.fill(.75, .75, 1.2);
     
     public static final Matrix<N3, N1> kMultiTagStdDevs = VecBuilder.fill(.5, .5, 1);

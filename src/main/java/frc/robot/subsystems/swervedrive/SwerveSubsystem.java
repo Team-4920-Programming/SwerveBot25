@@ -80,6 +80,10 @@ public class SwerveSubsystem extends SubsystemBase
    */
   private       Vision4920      CenterCamera;
   public Pose3d CenterCameraPose3d = new Pose3d();
+
+private       Vision4920      RightCamera;
+  public Pose3d RightCameraPose3d = new Pose3d();
+
   private final SwerveDrivePoseEstimator poseEstimator;
   /**
    * Initialize {@link SwerveDrive} with the directory provided.
@@ -168,12 +172,15 @@ public class SwerveSubsystem extends SubsystemBase
   {
     //vision = new Vision(swerveDrive::getPose, swerveDrive.field);
     CenterCamera = new Vision4920(Constants.Vision4920.kCenterCam, Constants.Vision4920.kRobotToCenterCam );
+    RightCamera = new Vision4920(Constants.Vision4920.kRightCam, Constants.Vision4920.kRobotToRightCam );
   }
   private void ProcessVision4920()
   {
     //Process Vision
     Pose2d CenterCamPose= new Pose2d(0.0 ,0.0, Rotation2d.fromDegrees(0.0));;
     double CenterCamVisionTimestamp;
+    Pose2d RightCamPose= new Pose2d(0.0 ,0.0, Rotation2d.fromDegrees(0.0));;
+    double RightCamVisionTimestamp;
     //System.out.println("driver statio"+DriverStation.isDSAttached());
     //System.out.println("CeneterCAm"+(CenterCamera != null));
 
@@ -196,6 +203,23 @@ public class SwerveSubsystem extends SubsystemBase
     
     }
   
+    if ( DriverStation.isDSAttached() && RightCamera != null)
+    {
+       var visionEst = RightCamera.getEstimatedGlobalPose();
+       DogLog.log("SwerveSS/Vision/RightCameraPresent", RightCamera.isConnected());
+       
+        if (visionEst.isPresent()){
+            RightCamPose = visionEst.get().estimatedPose.toPose2d();
+            RightCameraPose3d = visionEst.get().estimatedPose;
+  
+            
+            RightCamVisionTimestamp = visionEst.get().timestampSeconds;
+            DogLog.log("SwerveSS/Vision/RightCameraPose", RightCameraPose3d);
+            DogLog.log("SwerveSS/Vision/RightTimeStamp",RightCamVisionTimestamp);
+            VisionReading(RightCamPose, RightCamVisionTimestamp, RightCamera.confidenceCalculator(visionEst.get()));
+        }
+    
+    }
   
   }
   public void VisionReading(Pose2d visionPose,double Timestamp, Matrix<N3, N1> visionMeasurementStdDevs)

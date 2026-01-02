@@ -76,25 +76,6 @@ import dev.doglog.DogLog;
         Optional<EstimatedRobotPose> visionEst = Optional.empty();
         for (var change : camera.getAllUnreadResults()) {
             visionEst = photonEstimator.update(change);
-
-            // Distance check: reject measurements > 6 meters
-            if (visionEst.isPresent()) {
-                double maxDistance = 0;
-                for (var target : visionEst.get().targetsUsed) {
-                    var t3d = target.getBestCameraToTarget();
-                    double distance = Math.sqrt(Math.pow(t3d.getX(), 2) + Math.pow(t3d.getY(), 2) + Math.pow(t3d.getZ(), 2));
-                    if (distance > maxDistance) maxDistance = distance;
-                }
-
-                if (maxDistance > 6.0) {
-                    DogLog.log("Vision/DistanceCheck/RejectedDistance", maxDistance);
-                    DogLog.log("Vision/DistanceCheck/RejectionReason", "Exceeds 6m threshold");
-                    visionEst = Optional.empty();
-                } else {
-                    DogLog.log("Vision/DistanceCheck/AcceptedDistance", maxDistance);
-                }
-            }
-
             updateEstimationStdDevs(visionEst, change.getTargets());
         }
         return visionEst;
@@ -198,8 +179,6 @@ import dev.doglog.DogLog;
             // Only penalize if ambiguity exceeds threshold
             if (ambiguity > Constants.Vision4920.APRILTAG_AMBIGUITY_THRESHOLD) {
                 poseAmbiguityFactor = 1.0 + (ambiguity * 2.0); // Gentler penalty: 2x multiplier per ambiguity point
-                DogLog.log("Vision/Confidence/AmbiguityRejection", true);
-                DogLog.log("Vision/Confidence/AmbiguityValue", ambiguity);
             }
         }
 
@@ -208,11 +187,9 @@ import dev.doglog.DogLog;
         if (smallestDistance > 5.0) {
             // Only penalize if beyond 5 meters
             distanceFactor = 1.0 + ((smallestDistance - 5.0) * 0.5); // Gradual penalty
-            DogLog.log("Vision/Confidence/DistancePenalty", true);
         } else if (smallestDistance < 2.5) {
             // Reward for close, high-quality measurements
             distanceFactor = 0.7; // 30% confidence boost
-            DogLog.log("Vision/Confidence/DistanceBoost", true);
         }
 
         // Tag count bonus: multiple tags significantly improve confidence
@@ -223,15 +200,6 @@ import dev.doglog.DogLog;
             1.0,
             distanceFactor * poseAmbiguityFactor * tagCountBonus
         );
-
-        // Log confidence metrics for analysis
-        DogLog.log("Vision/Confidence/TagCount", tagCount);
-        DogLog.log("Vision/Confidence/SmallestDistance", smallestDistance);
-        DogLog.log("Vision/Confidence/AverageDistance", averageDistance);
-        DogLog.log("Vision/Confidence/DistanceFactor", distanceFactor);
-        DogLog.log("Vision/Confidence/PoseAmbiguityFactor", poseAmbiguityFactor);
-        DogLog.log("Vision/Confidence/TagCountBonus", tagCountBonus);
-        DogLog.log("Vision/Confidence/FinalMultiplier", confidenceMultiplier);
 
         return Constants.Vision4920.VISION_MEASUREMENT_STANDARD_DEVIATIONS.times(confidenceMultiplier);
       }

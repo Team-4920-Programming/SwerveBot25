@@ -226,7 +226,7 @@ private       Vision4920      RightCamera;
   {
       swerveDrive.addVisionMeasurement(visionPose, Timestamp, visionMeasurementStdDevs);
   //    poseEstimator.addVisionMeasurement(visionPose, Timestamp, visionMeasurementStdDevs);
-  poseEstimator.addVisionMeasurement(visionPose, Timestamp);
+  // poseEstimator.addVisionMeasurement(visionPose, Timestamp);
     }  
   @Override
   public void periodic()
@@ -242,6 +242,12 @@ private       Vision4920      RightCamera;
     }
       poseEstimator.update(GetGyroAngle(), getModulePositions());
       DogLog.log("SwerveSS/Pose/Pose4920", poseEstimator.getEstimatedPosition());
+      DogLog.log("SwerveSS/Pose/YASGLRobotPose", swerveDrive.getPose());
+      DogLog.log("APRILTAG 18", Constants.Vision4920.kTagLayout.getTagPose(18).get());
+      DogLog.log("APRILTAG 21", Constants.Vision4920.kTagLayout.getTagPose(21).get());
+      DogLog.log("APRILTAG 22", Constants.Vision4920.kTagLayout.getTagPose(22).get());
+      DogLog.log("APRILTAG 12", Constants.Vision4920.kTagLayout.getTagPose(12).get());
+      DogLog.log("APRILTAG 1", Constants.Vision4920.kTagLayout.getTagPose(1).get());    
       //swerveDrive.field.setRobotPose(getPose());
      // SmartDashboard.("Pose",swerveDrive.getPose());
     /* vision.updatePoseEstimation(swerveDrive);
@@ -309,7 +315,7 @@ private       Vision4920      RightCamera;
               // PPHolonomicController is the built in path following controller for holonomic drive trains
               new PIDConstants(5.0, 0.0, 0.0),
               // Translation PID constants
-              new PIDConstants(5, 0.0, 0.0)
+              new PIDConstants(5.0, 0.0, 0.0)
               // Rotation PID constants
           ),
           config,
@@ -387,8 +393,8 @@ private       Vision4920      RightCamera;
   {
 // Create the constraints to use while pathfinding
     PathConstraints constraints = new PathConstraints(
-        swerveDrive.getMaximumChassisVelocity(), 4.0,
-        swerveDrive.getMaximumChassisAngularVelocity(), Units.degreesToRadians(720));
+        swerveDrive.getMaximumChassisVelocity(), 2.0,
+        swerveDrive.getMaximumChassisAngularVelocity(), Units.degreesToRadians(180));
 
 // Since AutoBuilder is configured, we can use it to build pathfinding commands
     return AutoBuilder.pathfindToPose(
@@ -501,11 +507,12 @@ private       Vision4920      RightCamera;
    * @param speedInMetersPerSecond the speed at which to drive in meters per second
    * @return a Command that drives the swerve drive to a specific distance at a given speed
    */
-  public Command driveToDistanceCommand(double distanceInMeters, double speedInMetersPerSecond)
+  public Command driveToDistanceCommand(Pose2d currentRobotPose, double distanceInMeters, double speedInMetersPerSecond)
   {
+    // DogLog.log("SwerveSS/DriveToDistanceCommand/DistanceRemaining", swerveDrive.getPose().getTranslation().getDistance(currentRobotPose.getTranslation()));
     return run(() -> drive(new ChassisSpeeds(speedInMetersPerSecond, 0, 0)))
-        .until(() -> swerveDrive.getPose().getTranslation().getDistance(new Translation2d(0, 0)) >
-                     distanceInMeters);
+        .until(() -> swerveDrive.getPose().getTranslation().getDistance(currentRobotPose.getTranslation()) >
+                     distanceInMeters); 
   }
 
   /**
@@ -653,8 +660,8 @@ private       Vision4920      RightCamera;
    */
   public Pose2d getPose()
   {
-    //return swerveDrive.getPose();
-    return poseEstimator.getEstimatedPosition();
+    return swerveDrive.getPose();
+    // return poseEstimator.getEstimatedPosition();
   }
 
   /**
@@ -871,4 +878,15 @@ public SwerveModulePosition[] getModulePositions()
 {
   return swerveDrive.getModulePositions();
 }
+
+  /**
+   * Creates a pre-match calibration command for verifying gyro, encoders, and PID tuning.
+   * This routine only uses in-place rotation, making it safe for pit testing.
+   *
+   * @return Command that runs the full calibration routine
+   */
+  public Command getPreMatchCalibrationCommand()
+  {
+    return new frc.robot.commands.swervedrive.auto.PreMatchCalibrationCommand(this);
+  }
 }

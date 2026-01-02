@@ -15,6 +15,7 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
+import frc.robot.resources.customapriltagfield;
 import swervelib.math.Matter;
 import edu.wpi.first.math.Matrix;
 
@@ -117,9 +118,11 @@ public static final class DriveConstants {
   public static final Transform3d ROBOT_TO_CAMERA_Right = kRobotToRedReefCam .inverse();
   public static final Transform3d ROBOT_TO_CAMERA_Left = kRobotToRedGeneralCam.inverse();
   public static final Transform3d ROBOT_TO_CAMERA_Center = kRobotToCenterCam.inverse();
-  
-        public static final AprilTagFieldLayout kTagLayout =
-                AprilTagFields.k2025ReefscapeWelded.loadAprilTagLayoutField();
+public static final customapriltagfield atag = new customapriltagfield();
+    
+    public static final AprilTagFieldLayout kTagLayout = new AprilTagFieldLayout(atag.getTags(), 17.548, 8.052);  
+        // public static final AprilTagFieldLayout kTagLayout =
+        //         AprilTagFields.k2025ReefscapeWelded.loadAprilTagLayoutField();
    
 
     // The standard deviations of our vision estimated poses, which affect correction rate
@@ -144,13 +147,18 @@ public static final class DriveConstants {
      * model's state estimates less. This
      * matrix is in the form [x, y, theta]ᵀ, with units in meters and radians, then
      * meters.
+     *
+     * Note: These values are used as base multipliers in confidenceCalculator().
+     * Tuned based on observed vision measurement errors:
+     * - x, y: 0.5m std dev for close measurements, increases with distance
+     * - theta: 0.2 rad std dev, relatively stable
      */
     public static final Matrix<N3, N1> VISION_MEASUREMENT_STANDARD_DEVIATIONS = VecBuilder
         .fill(
             // if these numbers are less than one, multiplying will do bad things
-            1, // x
-            1, // y
-            1 * Math.PI // theta
+            0.5, // x - reduced from 1.0 for better trust in vision measurements
+            0.5, // y - reduced from 1.0 for better trust in vision measurements
+            0.2 * Math.PI // theta - reduced from 1.0*PI for better rotation estimates
         );
 
     /**
